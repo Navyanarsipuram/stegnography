@@ -1,0 +1,41 @@
+from PIL import Image
+
+def encode_image(image_path, message, output_path):
+    img = Image.open(image_path)
+    pixels = img.load()
+
+    binary_message = ''.join(format(ord(i), '08b') for i in message) + '1111111111111110'  # End marker
+    index = 0
+
+    for y in range(img.height):
+        for x in range(img.width):
+            if index < len(binary_message):
+                r, g, b = pixels[x, y]
+                r = (r & 0xFE) | int(binary_message[index])  # Modify LSB of Red channel
+                index += 1
+                pixels[x, y] = (r, g, b)
+            else:
+                break
+
+    img.save(output_path)
+    print("Message hidden successfully!")
+
+def decode_image(image_path):
+    img = Image.open(image_path)
+    pixels = img.load()
+    binary_message = ""
+
+    for y in range(img.height):
+        for x in range(img.width):
+            r, _, _ = pixels[x, y]
+            binary_message += str(r & 1)  # Extract LSB of Red channel
+
+    # Convert binary to text
+    byte_message = [binary_message[i:i+8] for i in range(0, len(binary_message), 8)]
+    message = ''.join(chr(int(b, 2)) for b in byte_message if int(b, 2) != 0xFE)
+    
+    print("Hidden Message:", message)
+
+# Usage
+encode_image("input.png", "Hello, Steganography!", "output.png")
+decode_image("output.png")
